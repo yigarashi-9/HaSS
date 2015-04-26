@@ -5,17 +5,20 @@ import           Text.Parsec.Language
 import qualified Text.Parsec.Token as P
 import           Text.Parsec.String
 import           Text.Parsec
+import           Control.Exception hiding(try)
 import           System.Exit
 import           System.IO
+import           Data.Int
 import           Control.Monad
 import           Syntax
 
-parseFile :: String -> IO [Instruntion]
-parseFile fileName = parseFromFile assembly fileName >>= either report return
+parseFile :: String -> IO ([Instruction], Int)
+parseFile fileName = parseFromFile assembly fileName >>= either report ret
   where
-    report err = do
-        hPutStrLn stderr $ "Error: " ++ show err
-        exitFailure
+    report err = error $ show err
+    ret insts  = do
+      len <- evaluate $ length insts
+      return (insts, len)
 
 def :: LanguageDef st
 def = emptyDef
@@ -32,18 +35,33 @@ parens = P.parens lexer
 natural :: Parser Integer
 natural = P.natural lexer
 
+integer :: Parser Integer
+integer = P.integer lexer
+
+register :: Parser Int16
+register = do
+  r <- immdval
+  if r < 0 || r > 7
+  then unexpected "register number is 0 to 7"
+  else return r
+
+immdval :: Parser Int16
+immdval = do
+  n <- liftM fromIntegral integer
+  return (n :: Int16)
+
 whiteSpace :: Parser ()
 whiteSpace = P.whiteSpace lexer
 
-assembly :: Parser [Instruntion]
+assembly :: Parser [Instruction]
 assembly = do
-  insts <- many1 instruction
+  insts <- many1 instr
   eof >> (return insts)
 
-instruction :: Parser Instruntion
-instruction = whiteSpace >> instBody
+instr :: Parser Instruction
+instr = whiteSpace >> instBody
 
-instBody :: Parser Instruntion
+instBody :: Parser Instruction
 instBody =  try primOp
         <|> try shiftOp
         <|> try inOp
@@ -56,57 +74,59 @@ instBody =  try primOp
         <|> condBrOp
         <?> "instruction"
 
-primOp :: Parser Instruntion
+primOp :: Parser Instruction
 primOp = do
   op <- choice (map (try . symbol) ["ADD", "SUB", "AND", "OR", "XOR", "CMP", "MOV"])
-  rd <- natural
-  rs <- (symbol ",") >> natural
+  rd <- register
+  rs <- (symbol ",") >> register
   return $ Prim op rd rs
 
-shiftOp :: Parser Instruntion
+shiftOp :: Parser Instruction
 shiftOp = do
   op <- choice (map (try . symbol) ["SLL", "SLR", "SRL", "SRA"])
-  rd <- natural
-  rs <- (symbol ",") >> natural
-  return $ Shift op rd rs
+  rd <- register
+  d  <- (symbol ",") >> immdval
+  if d < 0 || d >= 16
+  then unexpected "shift amount is 0 to 15"
+  else return $ Shift op rd d
 
-inOp :: Parser Instruntion
-inOp = symbol "IN" >> (liftM Input natural)
+inOp :: Parser Instruction
+inOp = symbol "IN" >> (liftM Input register)
 
-outOp :: Parser Instruntion
-outOp = symbol "OUT" >> (liftM Output natural)
+outOp :: Parser Instruction
+outOp = symbol "OUT" >> (liftM Output register)
 
-hlt :: Parser Instruntion
+hlt :: Parser Instruction
 hlt = symbol "HLT" >> return Halt
 
-loadOp :: Parser Instruntion
+loadOp :: Parser Instruction
 loadOp = do
-  ra <- (symbol "LD") >> natural
-  d  <- (symbol ",")  >> natural
-  rb <- parens natural
+  ra <- (symbol "LD") >> register
+  d  <- (symbol ",")  >> immdval
+  rb <- parens register
   return $ Load ra d rb
 
-storeOp :: Parser Instruntion
+storeOp :: Parser Instruction
 storeOp = do
-  ra <- (symbol "ST") >> natural
-  d  <- (symbol ",")  >> natural
-  rb <- parens natural
+  ra <- (symbol "ST") >> register
+  d  <- (symbol ",")  >> immdval
+  rb <- parens register
   return $ Store ra d rb
 
-loadImOp :: Parser Instruntion
+loadImOp :: Parser Instruction
 loadImOp = do
-  rb <- (symbol "LI") >> natural
-  d  <- (symbol ",")  >> natural
+  rb <- (symbol "LI") >> register
+  d  <- (symbol ",")  >> immdval
   return $ LoadIm rb d
 
-uncondBrOp :: Parser Instruntion
+uncondBrOp :: Parser Instruction
 uncondBrOp = do
-  rb <- (symbol "B") >> natural
-  d  <- (symbol ",") >> natural
+  rb <- (symbol "B") >> register
+  d  <- (symbol ",") >> immdval
   return $ UncondBr d
 
-condBrOp :: Parser Instruntion
+condBrOp :: Parser Instruction
 condBrOp = do
   op <- choice (map (try . symbol) ["BE", "BLT", "BLE", "BNE"])
-  d  <- natural
+  d  <- immdval
   return $ CondBr op d

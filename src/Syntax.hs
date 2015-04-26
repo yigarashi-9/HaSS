@@ -1,14 +1,26 @@
-
 module Syntax where
 
-data Instruntion = Prim     String Integer Integer
-                 | Shift    String Integer Integer
-                 | Input    Integer
-                 | Output   Integer
+import Data.Array
+import Data.Int
+
+data Instruction = Prim     String Int16 Int16
+                 | Shift    String Int16 Int16
+                 | Input    Int16
+                 | Output   Int16
                  | Halt
-                 | Load     Integer Integer Integer
-                 | Store    Integer Integer Integer
-                 | LoadIm   Integer Integer
-                 | UncondBr Integer
-                 | CondBr   String Integer
+                 | Load     Int16 Int16 Int16
+                 | Store    Int16 Int16 Int16
+                 | LoadIm   Int16 Int16
+                 | UncondBr Int16
+                 | CondBr   String Int16
                  deriving(Show)
+
+data SIMPLE = SIMPLE { pc :: Int16
+                     , instruction :: [Instruction]
+                     , registerFile :: Array Int16 Int16
+                     , ram    :: Array Int16 Int16
+                     , code_c :: Bool
+                     , code_z :: Bool
+                     , code_v :: Bool
+                     , code_s :: Bool
+                     } deriving(Show)
