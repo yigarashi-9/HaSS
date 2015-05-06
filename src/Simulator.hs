@@ -35,6 +35,8 @@ run insts ramFile = do
 
 runBody :: Simulator ()
 runBody = do
+  -- simple <- get
+  -- lift $ print (registerFile simple)
   inst <- updatePC 1
   lift $ print inst
   case inst of

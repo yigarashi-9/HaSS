@@ -21,7 +21,7 @@ parseFile fileName = parseFromFile assembly fileName >>= either report ret
       return (insts, len)
 
 def :: LanguageDef st
-def = emptyDef
+def = emptyDef { P.commentLine = "%" }
 
 lexer :: P.TokenParser st
 lexer = P.makeTokenParser def
