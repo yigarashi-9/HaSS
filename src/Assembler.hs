@@ -28,7 +28,7 @@ createMifFile path = do
   withFile mifPath WriteMode $ \handle ->
       do
         mapM_ (hPutStrLn handle) mifHeader
-        mapM_ (hPutStrLn handle) (zipWith bond [0..len-1] machineLang)
+        mapM_ (hPutStrLn handle) (zipWith line [0..len-1] machineLang)
         hPutStrLn handle $ concat ["[", show len, "..2048]:", replicate 16 '0', ";"]
         hPutStrLn handle "END;"
       where mifHeader = ["WITDH = 16;"
@@ -36,7 +36,7 @@ createMifFile path = do
                         ,"ADDRESS_RADIX = DEC;"
                         ,"DATA_RADIX    = BIN;"
                         ,"CONTENT BEGIN"]
-            bond addr dat = concat [show addr, ":", dat, ";"]
+            line addr dat = concat [show addr, ":", dat, ";"]
 
 assemble :: [Instruction] -> [String]
 assemble = foldr (\i acc -> (conv i):acc) []
@@ -50,6 +50,7 @@ conv (Halt)           = "1100000011110000"
 conv (Load ra d rb)   = concat ["00", dec2bin ra 3, dec2bin rb 3, dec2bin d 8]
 conv (Store ra d rb)  = concat ["01", dec2bin ra 3, dec2bin rb 3, dec2bin d 8]
 conv (LoadIm rb d)    = concat ["10", "000",        dec2bin rb 3, dec2bin d 8]
+conv (AddI rb d)      = concat ["10", "001",        dec2bin rb 3, dec2bin d 8]
 conv (UncondBr d)     = concat ["10", "100",        "000",        dec2bin d 8]
 conv (CondBr op d)    = concat ["10", "111",        convBrOp op,  dec2bin d 8]
 

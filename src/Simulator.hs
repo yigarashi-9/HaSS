@@ -13,15 +13,16 @@ import Syntax
 type Simulator = StateT SIMPLE IO
 
 initialSimple :: ([Instruction], Int) -> String -> IO SIMPLE
-initialSimple (insts, len) ramFile = do
+initialSimple (insts, _) ramFile = do
   withFile ramFile ReadMode $ \handle ->
       do
-        ramData <- liftM ((map $ read) . lines) $ hGetContents handle
-        let ramSize = (fromIntegral len) :: Int16
+        ramData  <- liftM ((map read) . lines) $ hGetContents handle
+        ramSize_ <- evaluate $ length ramData
+        let ramSize = (fromIntegral ramSize_) :: Int16
         return $ SIMPLE { pc = 0
                         , instruction = insts
                         , registerFile = array (0, 7) [(i, 0) | i <- [0..7]]
-                        , ram     = array (0, ramSize) (zipWith (,) [0..] ramData)
+                        , ram     = array (0, ramSize-1) (zipWith (,) [0..] ramData)
                         , code_c  = False
                         , code_v  = False
                         , code_s  = False
@@ -35,6 +36,7 @@ run insts ramFile = do
 runBody :: Simulator ()
 runBody = do
   inst <- updatePC 1
+  lift $ print inst
   case inst of
     Nothing  -> return ()
     (Just i) -> runInst i >> runBody
@@ -60,7 +62,10 @@ runInst Halt            = do { s <- get;
                                put $ s { pc = -1 } }
 runInst (Load ra d rb)  = loadMem ra d rb
 runInst (Store ra d rb) = storeMem ra d rb
-runInst (LoadIm rb d)   = writeReg rb d
+runInst (LoadIm rb d)   = setCodeLogic d >> writeReg rb d
+runInst (AddI rb d)    = do {
+                            v <- readReg rb;
+                            setCodeLogic (v+d) >> writeReg rb (v+d) }
 runInst (UncondBr d)    = updatePC d >> return ()
 runInst (CondBr op d)   = condBrOp op d
 
@@ -74,14 +79,14 @@ loadMem ra d rb = do
   simple <- get
   let regFile = registerFile simple
       dataRam = ram simple
-  put $ simple { registerFile = regFile // [(ra, dataRam ! rb + d)] }
+  put $ simple { registerFile = regFile // [(ra, dataRam ! ((regFile ! rb)+d))] }
 
 storeMem :: Int16 -> Int16 -> Int16 -> Simulator ()
 storeMem ra d rb = do
   simple <- get
   let regFile = registerFile simple
       dataRam = ram simple
-  put $ simple { ram = dataRam // [(regFile ! rb + d, regFile ! ra)] }
+  put $ simple { ram = dataRam // [((regFile ! rb) + d, regFile ! ra)] }
 
 (.^.) :: Bool -> Bool -> Bool
 (.^.) a b = (not a && b) || (a && not b)

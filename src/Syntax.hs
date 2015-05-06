@@ -11,6 +11,7 @@ data Instruction = Prim     String Int16 Int16
                  | Load     Int16 Int16 Int16
                  | Store    Int16 Int16 Int16
                  | LoadIm   Int16 Int16
+                 | AddI     Int16 Int16
                  | UncondBr Int16
                  | CondBr   String Int16
                  deriving(Show)

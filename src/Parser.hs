@@ -70,6 +70,7 @@ instBody =  try primOp
         <|> try loadOp
         <|> try storeOp
         <|> try loadImOp
+        <|> try addiOp
         <|> try uncondBrOp
         <|> condBrOp
         <?> "instruction"
@@ -119,10 +120,15 @@ loadImOp = do
   d  <- (symbol ",")  >> immdval
   return $ LoadIm rb d
 
+addiOp :: Parser Instruction
+addiOp = do
+  rb <- (symbol "ADDI") >> register
+  d  <- (symbol ",")  >> immdval
+  return $ AddI rb d
+
 uncondBrOp :: Parser Instruction
 uncondBrOp = do
-  rb <- (symbol "B") >> register
-  d  <- (symbol ",") >> immdval
+  d <- (symbol "B") >> immdval
   return $ UncondBr d
 
 condBrOp :: Parser Instruction
