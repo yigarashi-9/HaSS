@@ -60,6 +60,7 @@ runInst (Shift op rd d) = shiftOp op rd d
 runInst (Input rd)      = liftIO getLine >>= (writeReg rd) . read
 runInst (Output rs)     = do { v <- readReg rs;
                                liftIO $ print v }
+runInst Nop             = return ()
 runInst Halt            = do { s <- get;
                                put $ s { pc = -1 } }
 runInst (Load ra d rb)  = loadMem ra d rb

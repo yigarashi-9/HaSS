@@ -66,6 +66,7 @@ instBody =  try primOp
         <|> try shiftOp
         <|> try inOp
         <|> try outOp
+        <|> try nop
         <|> try hlt
         <|> try loadOp
         <|> try storeOp
@@ -96,6 +97,9 @@ inOp = symbol "IN" >> (liftM Input register)
 
 outOp :: Parser Instruction
 outOp = symbol "OUT" >> (liftM Output register)
+
+nop :: Parser Instruction
+nop = symbol "NOP" >> return Nop
 
 hlt :: Parser Instruction
 hlt = symbol "HLT" >> return Halt

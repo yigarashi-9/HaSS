@@ -8,6 +8,7 @@ data Instruction = Prim     String Int16 Int16
                  | Input    Int16
                  | Output   Int16
                  | Halt
+                 | Nop
                  | Load     Int16 Int16 Int16
                  | Store    Int16 Int16 Int16
                  | LoadIm   Int16 Int16
