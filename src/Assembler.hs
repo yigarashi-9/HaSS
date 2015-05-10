@@ -5,6 +5,7 @@ import System.IO
 import System.Exit
 import Data.Bits
 import Data.Int
+import Data.Maybe
 import Parser
 import Syntax
 
@@ -22,16 +23,17 @@ main = do
 
 createMifFile :: FilePath -> IO ()
 createMifFile path = do
-  (insts, len) <- parseFile path
+  insts <- parseFile path
+  len   <- evaluate $ length insts
   let machineLang = assemble insts
       mifPath     = dropExtension path ++ ".mif"
   withFile mifPath WriteMode $ \handle ->
       do
         mapM_ (hPutStrLn handle) mifHeader
         mapM_ (hPutStrLn handle) (zipWith line [0..len-1] machineLang)
-        hPutStrLn handle $ concat ["[", show len, "..2048]:", replicate 16 '0', ";"]
+        hPutStrLn handle $ concat ["[", show len, "..2047]:", replicate 16 '0', ";"]
         hPutStrLn handle "END;"
-      where mifHeader = ["WITDH = 16;"
+      where mifHeader = ["WIDTH = 16;"
                         ,"DEPTH = 2048;"
                         ,"ADDRESS_RADIX = DEC;"
                         ,"DATA_RADIX    = BIN;"
@@ -39,7 +41,7 @@ createMifFile path = do
             line addr dat = concat [show addr, ":", dat, ";"]
 
 assemble :: [Instruction] -> [String]
-assemble = foldr (\i acc -> (conv i):acc) []
+assemble = foldr (\i acc -> (conv i) : acc) []
 
 conv :: Instruction -> String
 conv (Prim  op rd rs) = concat ["11", dec2bin rs 3, dec2bin rd 3, convArithOp op, "0000"]

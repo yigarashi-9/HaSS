@@ -14,7 +14,9 @@ data Instruction = Prim     String Int16 Int16
                  | LoadIm   Int16 Int16
                  | AddI     Int16 Int16
                  | UncondBr Int16
+                 | UncondBrLabel String
                  | CondBr   String Int16
+                 | CondBrLabel   String String
                  deriving(Show)
 
 data SIMPLE = SIMPLE { pc :: Int16

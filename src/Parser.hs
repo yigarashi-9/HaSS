@@ -9,25 +9,47 @@ import           Control.Exception hiding(try)
 import           System.Exit
 import           System.IO
 import           Data.Int
+import           Data.Maybe
 import           Control.Monad
+import           Control.Applicative((<*))
 import           Syntax
 
-parseFile :: String -> IO ([Instruction], Int)
-parseFile fileName = parseFromFile assembly fileName >>= either report ret
+parseFile :: String -> IO [Instruction]
+parseFile fileName = parseFromFile assembly fileName >>= either report (return . convLabel)
   where
     report err = error $ show err
-    ret insts  = do
-      len <- evaluate $ length insts
-      return (insts, len)
+
+convLabel :: [(String, Instruction)] -> [Instruction]
+convLabel l = convLoop labels 1 (map snd l)
+    where labels = zipWith (,) (map fst l) ([0..] :: [Int16])
+
+convLoop :: [(String, Int16)] -> Int16 -> [Instruction] -> [Instruction]
+convLoop _ _ [] = []
+convLoop labels pc (l:ls)
+    = (case l of
+         (UncondBrLabel label)  -> (UncondBr $  (fromJust (lookup label labels)) - pc)
+         (CondBrLabel op label) -> (CondBr op $ (fromJust (lookup label labels)) - pc)
+         inst                   -> inst
+      ) : convLoop labels (pc+1) ls
 
 def :: LanguageDef st
-def = emptyDef { P.commentLine = "%" }
+def = emptyDef { P.commentLine = "%"
+               , P.reservedNames = ["ADD", "SUB", "AND", "OR"  , "XOR", "CMP", "MOV", "SLL",
+                                    "SLR", "SRL", "SRA", "IN"  , "OUT", "NOP", "HLT", "ADDI",
+                                    "LD" , "ST" , "LI" , "B"   , "BE" , "BLT", "BLE", "BNE"]
+               }
 
 lexer :: P.TokenParser st
 lexer = P.makeTokenParser def
 
 symbol :: String -> Parser String
 symbol = P.symbol lexer
+
+identifier :: Parser String
+identifier = P.identifier lexer
+
+colon :: Parser String
+colon = P.colon lexer
 
 parens :: forall a. Parser a -> Parser a
 parens = P.parens lexer
@@ -53,13 +75,13 @@ immdval = do
 whiteSpace :: Parser ()
 whiteSpace = P.whiteSpace lexer
 
-assembly :: Parser [Instruction]
+assembly :: Parser [(String, Instruction)]
 assembly = do
   insts <- many1 instr
   eof >> (return insts)
 
-instr :: Parser Instruction
-instr = whiteSpace >> instBody
+instr :: Parser (String, Instruction)
+instr = liftM2 (,) (whiteSpace >> option "" (identifier <* colon)) instBody
 
 instBody :: Parser Instruction
 instBody =  try primOp
@@ -72,8 +94,8 @@ instBody =  try primOp
         <|> try storeOp
         <|> try loadImOp
         <|> try addiOp
-        <|> try uncondBrOp
-        <|> condBrOp
+        <|> try condBrOp
+        <|> uncondBrOp
         <?> "instruction"
 
 primOp :: Parser Instruction
@@ -131,12 +153,11 @@ addiOp = do
   return $ AddI rb d
 
 uncondBrOp :: Parser Instruction
-uncondBrOp = do
-  d <- (symbol "B") >> immdval
-  return $ UncondBr d
+uncondBrOp = (symbol "B") >> choice [immdval    >>= (return . UncondBr),
+                                     identifier >>= (return . UncondBrLabel)]
 
 condBrOp :: Parser Instruction
 condBrOp = do
   op <- choice (map (try . symbol) ["BE", "BLT", "BLE", "BNE"])
-  d  <- immdval
-  return $ CondBr op d
+  choice [immdval    >>= (return . CondBr op),
+          identifier >>= (return . CondBrLabel op)]

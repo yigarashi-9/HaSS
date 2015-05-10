@@ -12,8 +12,8 @@ import Syntax
 
 type Simulator = StateT SIMPLE IO
 
-initialSimple :: ([Instruction], Int) -> String -> IO SIMPLE
-initialSimple (insts, _) ramFile = do
+initialSimple :: [Instruction] -> String -> IO SIMPLE
+initialSimple insts ramFile = do
   withFile ramFile ReadMode $ \handle ->
       do
         ramData  <- liftM ((map read) . lines) $ hGetContents handle
@@ -28,17 +28,14 @@ initialSimple (insts, _) ramFile = do
                         , code_s  = False
                         , code_z  = False }
 
-run :: ([Instruction], Int) -> String -> IO SIMPLE
+run :: [Instruction] -> String -> IO SIMPLE
 run insts ramFile = do
   simple <- initialSimple insts ramFile
   execStateT runBody simple
 
 runBody :: Simulator ()
 runBody = do
-  -- simple <- get
-  -- lift $ print (registerFile simple)
   inst <- updatePC 1
-  lift $ print inst
   case inst of
     Nothing  -> return ()
     (Just i) -> runInst i >> runBody
