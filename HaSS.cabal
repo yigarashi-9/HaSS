@@ -18,12 +18,20 @@ library
       Syntax
       Simulator
       Assembler
-    ghc-options:   -Wall
+    ghc-options:   -Wall -O3
 
 executable hass
-    Hs-source-dirs: src-exec
+    Hs-source-dirs: src-simulator
     Default-Language: Haskell2010
     main-is:  Main.hs
     build-depends: base >= 4 && < 5
                  , HaSS
-    ghc-options:   -Wall
+    ghc-options:   -Wall -O3
+
+executable hass-assembler
+    Hs-source-dirs: src-assembler
+    Default-Language: Haskell2010
+    main-is:  Main.hs
+    build-depends: base >= 4 && < 5
+                 , HaSS
+    ghc-options:   -Wall -O3
