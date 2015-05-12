@@ -1,4 +1,4 @@
-module Simulator (run) where
+module Simulator(run) where
 
 import Control.Monad.State
 import Control.Monad

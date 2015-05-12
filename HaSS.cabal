@@ -1,0 +1,29 @@
+name: HaSS
+version: 0.1
+author: yu-i9
+synopsis: Haskell SIMPLE Simulator
+cabal-version: >= 1.22
+build-type: Simple
+
+library
+    Hs-source-dirs: src
+    Default-Language: Haskell2010
+    build-depends: base >= 4 && < 5
+                 , parsec >= 3.1.9
+                 , array >= 0.5.1.0
+                 , filepath >= 1.4.0.0
+                 , mtl >= 2.2.1
+    exposed-modules:
+      Parser
+      Syntax
+      Simulator
+      Assembler
+    ghc-options:   -Wall
+
+executable hass
+    Hs-source-dirs: src-exec
+    Default-Language: Haskell2010
+    main-is:  Main.hs
+    build-depends: base >= 4 && < 5
+                 , HaSS
+    ghc-options:   -Wall

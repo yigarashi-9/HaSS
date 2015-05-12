@@ -1,3 +1,5 @@
+module Assembler(createMifFile) where
+
 import Control.Exception
 import System.Environment
 import System.FilePath
@@ -8,18 +10,6 @@ import Data.Int
 import Data.Maybe
 import Parser
 import Syntax
-
-main :: IO ()
-main = do
-  args <- getArgs
-  catch (do
-          if length args /= 1
-          then error "number of arguments must be 1"
-          else createMifFile $ head args) err
-    where
-      err e = do
-           hPutStrLn stderr ("Error" ++ show (e :: SomeException))
-           exitFailure
 
 createMifFile :: FilePath -> IO ()
 createMifFile path = do
