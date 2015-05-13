@@ -11,8 +11,9 @@ main = do
   catch ( if length args /= 2
           then error "number of arguments must be 2.\nUsage: hass <program> <data>"
           else do
-            insts  <- parseFile (args !! 0)  -- assembly file name
-            result <- run insts (args !! 1)  -- memory   file name
+            insts         <- parseFile (args !! 0)  -- assembly file name
+            (num, result) <- run insts (args !! 1)  -- memory   file name
+            putStrLn $ "\nInstruction: " ++ show num ++ "\n"
             print result
         ) err
     where

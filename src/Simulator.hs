@@ -28,17 +28,17 @@ initialSimple insts ramFile = do
                         , code_s  = False
                         , code_z  = False }
 
-run :: [Instruction] -> String -> IO SIMPLE
+run :: [Instruction] -> String -> IO (Int, SIMPLE)
 run insts ramFile = do
   simple <- initialSimple insts ramFile
-  execStateT runBody simple
+  runStateT (runBody 0) simple
 
-runBody :: Simulator ()
-runBody = do
+runBody :: Int -> Simulator Int
+runBody cnt = do
   inst <- updatePC 1
   case inst of
-    Nothing  -> return ()
-    (Just i) -> runInst i >> runBody
+    Nothing  -> return cnt
+    (Just i) -> runInst i >> runBody (cnt+1)
 
 updatePC :: Int16 -> Simulator (Maybe Instruction)
 updatePC d = do
