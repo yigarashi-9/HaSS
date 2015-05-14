@@ -9,6 +9,7 @@ import Data.Bits
 import Data.Int
 import System.IO
 import Syntax
+import MifParser
 
 type Simulator = StateT SIMPLE IO
 
@@ -16,13 +17,13 @@ initialSimple :: [Instruction] -> String -> IO SIMPLE
 initialSimple insts ramFile = do
   withFile ramFile ReadMode $ \handle ->
       do
-        ramData  <- liftM ((map read) . lines) $ hGetContents handle
+        ramData  <- parseMif ramFile
         ramSize_ <- evaluate $ length ramData
         let ramSize = (fromIntegral ramSize_) :: Int16
         return $ SIMPLE { pc = 0
                         , instruction = insts
                         , registerFile = array (0, 7) [(i, 0) | i <- [0..7]]
-                        , ram     = array (0, ramSize-1) (zipWith (,) [0..] ramData)
+                        , ram     = array (0, ramSize-1) ramData
                         , code_c  = False
                         , code_v  = False
                         , code_s  = False
@@ -149,7 +150,7 @@ shiftRR rdv d = (rdv `shiftR` d) .&. (bit (16-d+1))-1
 setCodeShift :: Int16 -> Int16 -> Int -> Bool -> Simulator ()
 setCodeShift res rdv d isRight = do
   simple <- get
-  let res'     = (fromIntegral $ res) :: Int
+  let res'     = (fromIntegral res) :: Int
       shiftOut = d > 0 && (if isRight then res .&. bit (d-1) else res .&. bit (16-d+1)) > 0
   put $ simple { code_s = res < 0
                , code_z = res == 0

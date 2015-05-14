@@ -18,6 +18,7 @@ library
       Syntax
       Simulator
       Assembler
+      MifParser
     ghc-options:   -Wall -O3
 
 executable hass
